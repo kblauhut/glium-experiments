@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate glium;
-
 use glium::glutin;
 use glium::Display;
 use glium::Surface;
@@ -39,36 +36,35 @@ fn main() {
 
     let vertex_buffer = VertexBuffer::new(&display, &shape).unwrap();
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
-    let vs = fs::read_to_string("src/shaders/vertex/default_vs.glsl").expect("Unable to read file");
-    let fs =
-        fs::read_to_string("src/shaders/fragment/default_fs.glsl").expect("Unable to read file");
+    let fs = fs::read_to_string("src/shaders/fragment/default_fs.glsl").expect("File read error");
+    let vs = fs::read_to_string("src/shaders/vertex/default_vs.glsl").expect("File read error");
     let program = glium::Program::from_source(&display, &vs, &fs, None).unwrap();
 
     el.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
+        let next_frame_time = std::time::Instant::now() + std::time::Duration::from_nanos(8333333);
+        *control_flow = ControlFlow::WaitUntil(next_frame_time);
 
-        let mut target = display.draw();
-        target.clear_color(1.0, 1.0, 1.0, 1.0);
-        target
-            .draw(
-                &vertex_buffer,
-                &indices,
-                &program,
-                &glium::uniforms::EmptyUniforms,
-                &Default::default(),
-            )
-            .unwrap();
-        target.finish().unwrap();
-
-        match event {
-            Event::LoopDestroyed => return,
-            Event::WindowEvent { event, .. } => match event {
-                WindowEvent::Resized(physical_size) => {}
-                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                _ => (),
-            },
-            Event::RedrawRequested(_) => {}
-            _ => (),
+        let mut t: f32 = -0.5;
+        let mut closed = false;
+        while !closed {
+            // we update `t`
+            t += 0.001;
+            if t > 1.0 {
+                t = -1.0;
+            }
+            // drawing
+            let mut target = display.draw();
+            target.clear_color(0.0, 0.0, 0.0, 1.0);
+            target
+                .draw(
+                    &vertex_buffer,
+                    &indices,
+                    &program,
+                    &glium::uniform! { t: t },
+                    &Default::default(),
+                )
+                .unwrap();
+            target.finish().unwrap();
         }
     });
 }
